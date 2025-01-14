@@ -18,13 +18,13 @@ jobs:
           GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
           GIST_ID: ${{ secrets.GIST_ID }}
         run: |
-          # 定义变量
+          # Define variables
           ALL_CN_URL="https://ispip.clang.cn/all_cn.txt"
           ALL_CN_IPV6_URL="https://ispip.clang.cn/all_cn_ipv6.txt"
           ALL_CN_FILE="all_cn.txt"
           ALL_CN_IPV6_FILE="all_cn_ipv6.txt"
 
-          # 下载文件
+          # Download files
           for url in "$ALL_CN_URL" "$ALL_CN_IPV6_URL"; do
             file=$(basename "$url")
             if ! curl -o "$file" "$url"; then
@@ -33,8 +33,9 @@ jobs:
             fi
           done
 
-          # 构建 JSON 数据并更新 Gist
-          JSON_DATA=$(cat <<EOF
+          # Create temporary file for JSON data
+          tempfile=$(mktemp)
+          cat <<EOF >> "$tempfile"
           {
             "files": {
               "all_cn.txt": {
@@ -46,12 +47,14 @@ jobs:
             }
           }
           EOF
-          )
 
-          # 更新 Gist
+          # Update Gist
           curl -s -o /dev/null -w "%{http_code}" -X PATCH \
             -H "Authorization: token $GIST_TOKEN" \
             -H "Accept: application/vnd.github.v3+json" \
             https://api.github.com/gists/$GIST_ID \
-            -d "$JSON_DATA"
-          echo $?  # 输出HTTP状态码
+            -d "@$tempfile"  # Use @ to specify file from temporary location
+
+          # Clean up temporary file
+          rm "$tempfile"
+          echo $?  # Output HTTP status code
