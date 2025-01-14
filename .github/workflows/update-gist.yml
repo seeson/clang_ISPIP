@@ -27,10 +27,10 @@ jobs:
           {
             "files": {
               "all_cn.txt": {
-                "content": "@all_cn.txt"
+                "content": "$(cat all_cn.txt)"
               },
               "all_cn_ipv6.txt": {
-                "content": "@all_cn_ipv6.txt"
+                "content": "$(cat all_cn_ipv6.txt)"
               }
             }
           }
