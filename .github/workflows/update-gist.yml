@@ -33,31 +33,7 @@ jobs:
             fi
 
             # Fix line breaks in downloaded files (ensure each IP has a newline)
-            sed 's/\(\d\{1,3\}\.\d\{1,3\}\.\d\{1,3\}\.\d\{1,3}\/\d\{1,2\}\)/\1\n/g' -i "$file"
+            sed 's/\//\/\n/g' -i "$file" 
           done
 
-          # Create temporary file for JSON data
-          tempfile=$(mktemp)
-          cat <<EOF >> "$tempfile"
-          {
-            "files": {
-              "all_cn.txt": {
-                "content": "$(cat "$ALL_CN_FILE" | sed 's/"/\\"/g')"
-              },
-              "all_cn_ipv6.txt": {
-                "content": "$(cat "$ALL_CN_IPV6_FILE" | sed 's/"/\\"/g')"
-              }
-            }
-          }
-          EOF
-
-          # Update Gist
-          curl -s -o /dev/null -w "%{http_code}" -X PATCH \
-            -H "Authorization: token $GIST_TOKEN" \
-            -H "Accept: application/vnd.github.v3+json" \
-            https://api.github.com/gists/$GIST_ID \
-            -d "@$tempfile"  # Use @ to specify file from temporary location
-
-          # Clean up temporary file
-          rm "$tempfile"
-          echo $?  # Output HTTP status code
+          # ... (rest of the workflow)
