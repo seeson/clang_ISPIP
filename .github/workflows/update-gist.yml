@@ -15,7 +15,7 @@ jobs:
           GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
         run: |
           # 定义变量
-          GIST_ID="<your-gist-id>"
+          GIST_ID="1527b3cf050b36359e8fa320ac6a84d0"
           ALL_CN_URL="https://ispip.clang.cn/all_cn.txt"
           ALL_CN_IPV6_URL="https://ispip.clang.cn/all_cn_ipv6.txt"
           ALL_CN_FILE="all_cn.txt"
