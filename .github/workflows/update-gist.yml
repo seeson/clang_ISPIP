@@ -12,13 +12,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Download and process ISP data
+      - name: Download ISP data
         run: |
           curl -o all_cn.txt https://ispip.clang.cn/all_cn.txt
-          sed 's/\(\d\{1,3\}\.\d\{1,3\}\.\d\{1,3\}\.\d\{1,3}\/\d\{1,2\}\)/\1\n/g' all_cn.txt > processed_all_cn.txt 
-          curl -o all_cn_ipv6.txt https://ispip.clang.cn/all_cn_ipv6.txt 
-          # 假设 all_cn_ipv6.txt 不需要处理，仅作为示例
-          cp all_cn_ipv6.txt processed_all_cn_ipv6.txt 
+          curl -o all_cn_ipv6.txt https://ispip.clang.cn/all_cn_ipv6.txt
 
       - name: Update Gist
         env:
@@ -30,10 +27,10 @@ jobs:
           {
             "files": {
               "all_cn.txt": {
-                "content": "$(sed 's/"/\\"/g' processed_all_cn.txt | tr '\n' ' ')"
+                "content": "$(cat all_cn.txt | sed 's/"/\\"/g')"
               },
               "all_cn_ipv6.txt": {
-                "content": "$(sed 's/"/\\"/g' processed_all_cn_ipv6.txt | tr '\n' ' ')"
+                "content": "$(cat all_cn_ipv6.txt | sed 's/"/\\"/g')"
               }
             }
           }
@@ -56,4 +53,4 @@ jobs:
 
       - name: Cleanup
         run: |
-          rm -f all_cn.txt all_cn_ipv6.txt processed_all_cn.txt processed_all_cn_ipv6.txt gist.json
+          rm -f all_cn.txt all_cn_ipv6.txt gist.json
