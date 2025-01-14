@@ -12,12 +12,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Download ISP data
+      - name: Download and process ISP data
         run: |
           curl -o all_cn.txt https://ispip.clang.cn/all_cn.txt
-          sed 's/\(\d\{1,3\}\.\d\{1,3\}\.\d\{1,3\}\.\d\{1,3}\/\d\{1,2\}\)/\1\n/g' all_cn.txt > processed_all_cn.txt
-          curl -o all_cn_ipv6.txt https://ispip.clang.cn/all_cn_ipv6.txt
-          sed 's/\(\d\{1,3\}\.\d\{1,3\}\.\d\{1,3\}\.\d\{1,3}\/\d\{1,2\}\)/\1\n/g' all_cn_ipv6.txt > processed_all_cn_ipv6.txt
+          sed 's/\(\d\{1,3\}\.\d\{1,3\}\.\d\{1,3\}\.\d\{1,3}\/\d\{1,2\}\)/\1\n/g' all_cn.txt > processed_all_cn.txt 
+          curl -o all_cn_ipv6.txt https://ispip.clang.cn/all_cn_ipv6.txt 
+          # Assuming all_cn_ipv6.txt also needs similar processing
+          sed 's/\(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\/\d{1,2}\)/\1\n/g' all_cn_ipv6.txt > processed_all_cn_ipv6.txt 
 
       - name: Update Gist
         env:
@@ -29,10 +30,10 @@ jobs:
           {
             "files": {
               "all_cn.txt": {
-                "content": "$(cat all_cn.txt)"
+                "content": "$(cat processed_all_cn.txt)" 
               },
               "all_cn_ipv6.txt": {
-                "content": "$(cat all_cn_ipv6.txt)"
+                "content": "$(cat processed_all_cn_ipv6.txt)" 
               }
             }
           }
@@ -46,4 +47,4 @@ jobs:
             -d @gist.json
 
       - name: Cleanup
-        run: rm all_cn.txt all_cn_ipv6.txt gist.json
+        run: rm all_cn.txt all_cn_ipv6.txt processed_all_cn.txt processed_all_cn_ipv6.txt gist.json 
