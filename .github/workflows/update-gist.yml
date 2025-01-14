@@ -3,66 +3,55 @@ name: Update Gist with ISP Data
 on:
   schedule:
     - cron: "0 0 * * *" # 每天凌晨 00:00 UTC 执行
-  workflow_dispatch: # 手动触发
+  workflow_dispatch:
 
 jobs:
   update-gist:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
       - name: Fetch ISP data and update Gist
         env:
           GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
+          GIST_ID: ${{ secrets.GIST_ID }}
         run: |
-          # Define variables
-          GIST_ID=${{ secrets.GIST_ID }}
+          # 定义变量
           ALL_CN_URL="https://ispip.clang.cn/all_cn.txt"
           ALL_CN_IPV6_URL="https://ispip.clang.cn/all_cn_ipv6.txt"
           ALL_CN_FILE="all_cn.txt"
           ALL_CN_IPV6_FILE="all_cn_ipv6.txt"
 
-          # Download all_cn.txt
-          if ! curl -o "$ALL_CN_FILE" "$ALL_CN_URL"; then
-            echo "Failed to download $ALL_CN_FILE from $ALL_CN_URL"
-            exit 1
-          fi
-
-          # Download all_cn_ipv6.txt
-          if ! curl -o "$ALL_CN_IPV6_FILE" "$ALL_CN_IPV6_URL"; then
-            echo "Failed to download $ALL_CN_IPV6_FILE from $ALL_CN_IPV6_URL"
-            exit 1
-          fi
-
-          # Check if files are empty before using cat
-          if [ -s "$ALL_CN_FILE" ] && [ -s "$ALL_CN_IPV6_FILE" ]; then
-            # Build JSON data and update Gist
-            JSON_DATA=$(cat <<EOF
-            {
-              "files": {
-                "all_cn.txt": {
-                  "content": "$(cat $ALL_CN_FILE | sed 's/"/\\"/g')"
-                },
-                "all_cn_ipv6.txt": {
-                  "content": "$(cat $ALL_CN_IPV6_FILE | sed 's/"/\\"/g')"
-                }
-              }
-            }
-            EOF
-            )
-
-            RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" -X PATCH \
-              -H "Authorization: token $GIST_TOKEN" \
-              -H "Accept: application/vnd.github.v3+json" \
-              https://api.github.com/gists/$GIST_ID \
-              -d "$JSON_DATA")
-
-            # Check API request status
-            if [ "$RESPONSE" -ne 200 ]; then
-              echo "Failed to update Gist, HTTP status: $RESPONSE"
+          # 下载文件
+          for url in "$ALL_CN_URL" "$ALL_CN_IPV6_URL"; do
+            file=$(basename "$url")
+            if ! curl -o "$file" "$url"; then
+              echo "Failed to download $file from $url"
               exit 1
             fi
+          done
 
-            echo "Gist updated successfully!"
-          else
-            echo "Downloaded files seem to be empty. Skipping update."
-          fi
+          # 构建 JSON 数据并更新 Gist
+          JSON_DATA=$(cat <<EOF
+          {
+            "files": {
+              "all_cn.txt": {
+                "content": "$(cat "$ALL_CN_FILE" | sed 's/"/\\"/g')"
+              },
+              "all_cn_ipv6.txt": {
+                "content": "$(cat "$ALL_CN_IPV6_FILE" | sed 's/"/\\"/g')"
+              }
+            }
+          }
+          EOF
+          )
+
+          # 更新 Gist
+          curl -s -o /dev/null -w "%{http_code}" -X PATCH \
+            -H "Authorization: token $GIST_TOKEN" \
+            -H "Accept: application/vnd.github.v3+json" \
+            https://api.github.com/gists/$GIST_ID \
+            -d "$JSON_DATA"
+          echo $?  # 输出HTTP状态码
