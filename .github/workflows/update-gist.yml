@@ -2,60 +2,46 @@ name: Update Gist with ISP Data
 
 on:
   schedule:
-    - cron: "0 0 * * *" # 每天凌晨 00:00 UTC 执行
+    - cron: "0 0 * * *"  # 每天凌晨 00:00 UTC 执行
   workflow_dispatch:
 
 jobs:
   update-gist:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Fetch ISP data and update Gist
+      - name: Download ISP data
+        run: |
+          curl -o all_cn.txt https://ispip.clang.cn/all_cn.txt
+          curl -o all_cn_ipv6.txt https://ispip.clang.cn/all_cn_ipv6.txt
+
+      - name: Update Gist
         env:
           GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
           GIST_ID: ${{ secrets.GIST_ID }}
         run: |
-          # Define variables
-          ALL_CN_URL="https://ispip.clang.cn/all_cn.txt"
-          ALL_CN_IPV6_URL="https://ispip.clang.cn/all_cn_ipv6.txt"
-          ALL_CN_FILE="all_cn.txt"
-          ALL_CN_IPV6_FILE="all_cn_ipv6.txt"
-
-          # Download files
-          for url in "$ALL_CN_URL" "$ALL_CN_IPV6_URL"; do
-            file=$(basename "$url")
-            if ! curl -o "$file" "$url"; then
-              echo "Failed to download $file from $url"
-              exit 1
-            fi
-
-            # Fix line breaks in downloaded files (ensure each IP has a newline)
-            sed 's/\//\/\n/g' -i "$file" 
-          done
-
-          # Create temporary file for JSON data
-          tempfile=$(mktemp)
-          cat <<EOF >> "$tempfile"
+          # 创建一个临时 JSON 文件
+          cat > gist.json << EOF
           {
             "files": {
               "all_cn.txt": {
-                "content": "$(cat "$ALL_CN_FILE" | sed 's/"/\\"/g')"
+                "content": "@all_cn.txt"
               },
               "all_cn_ipv6.txt": {
-                "content": "$(cat "$ALL_CN_IPV6_FILE" | sed 's/"/\\"/g')"
+                "content": "@all_cn_ipv6.txt"
               }
             }
           }
           EOF
-          # Update Gist
+
+          # 更新 Gist
           curl -s -o /dev/null -w "%{http_code}" -X PATCH \
             -H "Authorization: token $GIST_TOKEN" \
             -H "Accept: application/vnd.github.v3+json" \
             https://api.github.com/gists/$GIST_ID \
-            -d "@$tempfile"  # Use @ to specify file from temporary location
-          # Clean up temporary file
-          rm "$tempfile"
-          echo $?  # Output HTTP status code
+            -d @gist.json
+
+      - name: Cleanup
+        run: rm all_cn.txt all_cn_ipv6.txt gist.json
